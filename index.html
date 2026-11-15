@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>周恬伊 Tianyi — UI/UX Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  html, body, #root { background: #0C0C0C; margin: 0; padding: 0; box-sizing: border-box; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Kanit', 'Noto Sans SC', sans-serif; margin: 0; padding: 0; }
+  .hero-heading {
+    background: linear-gradient(180deg, #646973 0%, #BBCCD7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  ::selection { background: #B600A8; color: #fff; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: #0C0C0C; }
+  ::-webkit-scrollbar-thumb { background: #2a2f38; border-radius: 8px; }
+
+.galaxy-host{position:relative;isolation:isolate;}
+.galaxy-layer{position:absolute!important;inset:0;z-index:0;pointer-events:none;overflow:hidden;mask-image:linear-gradient(transparent,#000 12%,#000 82%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 12%,#000 82%,transparent);}
+.galaxy-container{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;}
+.galaxy-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;}
+.galaxy-content{position:relative;z-index:1;}
+#home>.galaxy-layer{z-index:-1;}
+#home video{mix-blend-mode:screen;}
+
+  .lifeos-project-layout { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); align-items:center; gap:clamp(24px,3.5vw,56px); flex:1; min-height:0; padding:12px 4px 20px; }
+  .lifeos-project-image { overflow:hidden; border-radius:clamp(18px,2vw,30px); background:#15121e; width:100%; }
+  .lifeos-project-image img { display:block; width:100%; height:auto; object-fit:contain; }
+  .lifeos-project-description { padding:8px 12px 8px 0; }
+  .lifeos-project-description p { margin:0; color:#bbc6d2; font-family:'Noto Sans SC',sans-serif; font-size:clamp(14px,1.15vw,18px); font-weight:300; line-height:1.95; overflow-wrap:anywhere; }
+  @media(max-width:767px) {
+    .lifeos-project-layout { grid-template-columns:1fr; gap:20px; flex:none; padding:4px 0 12px; }
+    .lifeos-project-description { padding:0 4px; }
+    .lifeos-project-description p { font-size:14px; line-height:1.85; }
+    .lifeos-project-card { height:auto!important; min-height:560px; }
+  }
+
+.star-border {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.875rem 1.5rem;
+  border: 0;
+  border-radius: var(--star-border-radius);
+  background: var(--star-border-surface);
+  color: var(--star-border-text);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.25;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.star-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--star-border-thickness) var(--star-border-track);
+  pointer-events: none;
+}
+
+.star-border__light {
+  position: absolute;
+  top: -48px;
+  left: -48px;
+  z-index: -1;
+  width: calc(100% + 96px);
+  height: calc(100% + 96px);
+  pointer-events: none;
+}
+
+button.star-border,
+a.star-border {
+  cursor: pointer;
+}
+
+.star-border:focus-visible {
+  outline: 2px solid var(--star-border-track);
+  outline-offset: 3px;
+}
+
+.star-border:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.live-project-star { flex-shrink:0; padding: .875rem 2rem; font-size:14px; font-weight:500; text-transform:uppercase; letter-spacing:.1em; white-space:nowrap; }
+@media(min-width:640px){.live-project-star{padding:.875rem 2.5rem;font-size:16px;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+const FM = window.Motion || window.FramerMotion || window.framerMotion;
+const { motion, useScroll, useTransform } = FM;
+
+
+
+const MAX_LAYERS = 8;
+const MAX_COLORS = 4;
+const INTRO_SECONDS = 2.2;
+
+const VERTEX = `#version 300 es
+in vec2 aPosition;
+void main() {
+  gl_Position = vec4(aPosition, 0.0, 1.0);
+}`;
+
+const FRAGMENT = `#version 300 es
+precision highp float;
+precision highp int;
+uniform float uTime;
+uniform vec2 uResolution;
+uniform vec2 uFocal;
+uniform vec2 uRotation;
+uniform float uGloss;
+uniform float uDepth;
+uniform float uDensity;
+uniform float uHueShift;
+uniform float uSpeed;
+uniform vec2 uMouse;
+uniform float uStarGlow;
+uniform float uFlareGain;
+uniform float uSquash;
+uniform float uSaturation;
+uniform float uMouseRepulsion;
+uniform float uTwinkleIntensity;
+uniform float uRotationAngle;
+uniform float uRepulsionStrength;
+uniform float uMouseActiveFactor;
+uniform float uAutoCenterRepulsion;
+uniform int uLayers;
+uniform vec3 uColors[${MAX_COLORS}];
+uniform int uColorCount;
+uniform float uWarp;
+uniform float uReveal;
+uniform float uMode;
+uniform vec3 uBackground;
+uniform float uOpacity;
+out vec4 outColor;
+
+#define STAR_COLOR_CUTOFF 0.2
+#define MAT45 mat2(0.7071, -0.7071, 0.7071, 0.7071)
+#define PERIOD 3.0
+
+float Hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float tri(float x) {
+  return abs(fract(x) * 2.0 - 1.0);
+}
+
+float tris(float x) {
+  float t = fract(x);
+  return 1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0));
+}
+
+float trisn(float x) {
+  float t = fract(x);
+  return 2.0 * (1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0))) - 1.0;
+}
+
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+float Star(vec2 uv, float flare, vec2 radial, float invReach) {
+#ifdef WARP
+  float along = dot(uv, radial);
+  float d = sqrt(max(dot(uv, uv) - uSquash * along * along, 0.0));
+#else
+  float d = length(uv);
+#endif
+  float m = uStarGlow / d;
+  float rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
+  m += rays * flare * uFlareGain;
+  uv *= MAT45;
+  rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
+  m += rays * 0.3 * flare * uFlareGain;
+  m *= smoothstep(1.0, 0.2, d * invReach);
+#ifdef WARP
+  m *= mix(1.0, smoothstep(1.0, 0.55, length(uv) * invReach), min(uWarp * 4.0, 1.0));
+#endif
+  return m;
+}
+
+vec3 StarLayer(vec2 uv, vec2 radial, vec2 repelAt, float pushCells, float spread) {
+  vec3 col = vec3(0.0);
+  vec2 gv = fract(uv) - 0.5;
+  vec2 id = floor(uv);
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 offset = vec2(float(x), float(y));
+      vec2 si = id + offset;
+      float seed = Hash21(si);
+      float size = fract(seed * 345.32);
+      float glossLocal = tri(uGloss / (PERIOD * seed + 1.0));
+      float flareSize = smoothstep(0.9, 1.0, size) * glossLocal;
+
+#ifdef PALETTE
+      float pick = Hash21(si + 7.0) * float(uColorCount);
+      vec3 base = uColors[int(min(floor(pick), float(uColorCount - 1)))];
+#else
+      float red = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 1.0)) + STAR_COLOR_CUTOFF;
+      float blu = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 3.0)) + STAR_COLOR_CUTOFF;
+      float grn = min(red, blu) * seed;
+      vec3 base = vec3(red, grn, blu);
+      float hue = atan(base.g - base.r, base.b - base.r) / (2.0 * 3.14159) + 0.5;
+      hue = fract(hue + uHueShift / 360.0);
+      float sat = length(base - vec3(dot(base, vec3(0.299, 0.587, 0.114)))) * uSaturation;
+      float val = max(max(base.r, base.g), base.b);
+      base = hsv2rgb(vec3(hue, sat, val));
+#endif
+
+      vec2 pad = vec2(tris(seed * 34.0 + uTime * uSpeed / 10.0), tris(seed * 38.0 + uTime * uSpeed / 30.0)) - 0.5;
+      vec2 shift = vec2(0.0);
+      float invReach = 1.0;
+#ifdef REPEL
+      vec2 away = si + 0.5 + pad - repelAt;
+      float dist = length(away);
+      float q = dist * spread;
+      float cells = pushCells * exp(-q * q);
+      float moved = cells * inversesqrt(1.0 + cells * cells * 2.78);
+      shift = away * (moved / max(dist, 0.0001));
+      invReach = 1.0 / (1.0 - moved);
+#endif
+      float star = Star(gv - offset - pad - shift, flareSize, radial, invReach);
+      float twinkle = trisn(uTime * uSpeed + seed * 6.2831) * 0.5 + 1.0;
+      twinkle = mix(1.0, twinkle, uTwinkleIntensity);
+      col += star * twinkle * size * base;
+    }
+  }
+  return col;
+}
+
+void main() {
+  vec2 focalPx = uFocal * uResolution;
+  vec2 uv = (gl_FragCoord.xy - focalPx) / uResolution.y;
+  vec2 mouseNorm = uMouse - vec2(0.5);
+
+  vec2 repelAt = vec2(0.0);
+  float strength = 0.0;
+  float push = 0.0;
+  if (uAutoCenterRepulsion > 0.0) {
+    strength = uAutoCenterRepulsion;
+    push = strength * 0.05;
+  } else if (uMouseRepulsion > 0.5) {
+    repelAt = (uMouse * uResolution - focalPx) / uResolution.y;
+    strength = max(uRepulsionStrength, 0.0);
+    push = strength * 0.05 * uMouseActiveFactor;
+  } else {
+    uv += mouseNorm * 0.1 * uMouseActiveFactor;
+  }
+  float radius = 0.16 + 0.04 * strength;
+
+  vec2 radial = length(uv) > 0.0001 ? normalize(uv) : vec2(1.0, 0.0);
+  float angle = uRotationAngle;
+  uv = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * uv;
+  uv = mat2(uRotation.x, -uRotation.y, uRotation.y, uRotation.x) * uv;
+  radial = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * radial;
+  radial = mat2(uRotation.x, -uRotation.y, uRotation.y, uRotation.x) * radial;
+  repelAt = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * repelAt;
+  repelAt = mat2(uRotation.x, -uRotation.y, uRotation.y, uRotation.x) * repelAt;
+
+  vec3 col = vec3(0.0);
+  float layers = float(uLayers);
+  for (int k = 0; k < ${MAX_LAYERS}; k++) {
+    if (k >= uLayers) break;
+    float i = float(k) / layers;
+    float depth = fract(i + uDepth);
+    float scale = mix(20.0 * uDensity, 0.5 * uDensity, depth);
+    float fade = depth * smoothstep(1.0, 0.9, depth);
+    vec2 offset = vec2(i * 453.32);
+    col += StarLayer(uv * scale + offset, radial, repelAt * scale + offset, push * scale, 1.0 / (scale * radius)) * fade;
+  }
+  col *= uReveal;
+
+  if (uMode > 1.5) {
+    vec3 lit = col * smoothstep(0.0, 0.3, length(col));
+    float energy = max(max(lit.r, lit.g), lit.b);
+    vec3 tint = lit / max(energy, 0.0001);
+    vec3 ink = tint * (0.16 / max(dot(tint, vec3(0.2126, 0.7152, 0.0722)), 0.16));
+    float coverage = pow(min(energy * 1.3, 1.0), 1.3) * 0.92 * uOpacity;
+    outColor = uMode > 2.5 ? vec4(ink * coverage, coverage) : vec4(mix(uBackground, ink, coverage), 1.0);
+  } else if (uMode > 0.5) {
+    float alpha = min(smoothstep(0.0, 0.3, length(col)), 1.0) * uOpacity;
+    outColor = vec4(col * alpha, alpha);
+  } else {
+    outColor = vec4(mix(uBackground, col, uOpacity), 1.0);
+  }
+}`;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const keyOf = (palette, repel, warp) => (palette ? 4 : 0) + (repel ? 2 : 0) + (warp ? 1 : 0);
+
+const start = (gl, palette, repel, warp) => {
+  const defines = `${palette ? '#define PALETTE\n' : ''}${repel ? '#define REPEL\n' : ''}${warp ? '#define WARP\n' : ''}`;
+  const program = gl.createProgram();
+  const vertex = gl.createShader(gl.VERTEX_SHADER);
+  const fragment = gl.createShader(gl.FRAGMENT_SHADER);
+  if (!program || !vertex || !fragment) return null;
+  gl.shaderSource(vertex, VERTEX);
+  gl.shaderSource(fragment, FRAGMENT.replace('\n', `\n${defines}`));
+  gl.compileShader(vertex);
+  gl.compileShader(fragment);
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.bindAttribLocation(program, 0, 'aPosition');
+  gl.linkProgram(program);
+  gl.deleteShader(vertex);
+  gl.deleteShader(fragment);
+  return program;
+};
+
+const finish = (gl, program) => {
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+  const uniforms = {};
+  const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < count; i++) {
+    const info = gl.getActiveUniform(program, i);
+    if (info) uniforms[info.name.replace('[0]', '')] = gl.getUniformLocation(program, info.name);
+  }
+  return { program, uniforms };
+};
+
+const Galaxy = ({
+  focal = [0.5, 0.5],
+  rotation = [1.0, 0.0],
+  starSpeed = 0.5,
+  density = 1,
+  hueShift = 140,
+  disableAnimation = false,
+  speed = 1.0,
+  mouseInteraction = true,
+  glowIntensity = 0.3,
+  saturation = 0.0,
+  mouseRepulsion = true,
+  repulsionStrength = 2,
+  twinkleIntensity = 0.3,
+  rotationSpeed = 0.1,
+  autoCenterRepulsion = 0,
+  transparent = true,
+  lightMode = false,
+  starColors,
+  starSize = 1,
+  flareIntensity = 1,
+  layers = 4,
+  direction = 'forward',
+  clickWarp = true,
+  intro = true,
+  backgroundColor,
+  opacity = 1,
+  dpr,
+  className = '',
+  style,
+  ...rest
+}) => {
+  const containerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const wakeRef = useRef(null);
+  const palette = Array.isArray(starColors) ? starColors.filter(Boolean).slice(0, MAX_COLORS) : [];
+  const settings = {
+    focal: Array.isArray(focal) ? focal : [0.5, 0.5],
+    rotation: Array.isArray(rotation) ? rotation : [1, 0],
+    starSpeed,
+    density: Math.max(0.01, density),
+    hueShift,
+    disableAnimation,
+    speed,
+    mouseInteraction,
+    glowIntensity: Math.max(0, glowIntensity),
+    saturation: Math.max(0, saturation),
+    mouseRepulsion,
+    repulsionStrength,
+    twinkleIntensity: clamp(twinkleIntensity, 0, 1),
+    rotationSpeed,
+    autoCenterRepulsion: Math.max(0, autoCenterRepulsion),
+    transparent,
+    lightMode,
+    palette,
+    starSize: Math.max(0, starSize),
+    flareIntensity: Math.max(0, flareIntensity),
+    layers: clamp(Math.round(layers), 2, MAX_LAYERS),
+    reverse: direction === 'backward',
+    clickWarp,
+    intro,
+    backgroundColor,
+    opacity: clamp(opacity, 0, 1),
+    dpr
+  };
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    const gl = canvas?.getContext('webgl2', {
+      alpha: true,
+      premultipliedAlpha: true,
+      antialias: false,
+      depth: false,
+      stencil: false
+    });
+    if (!container || !canvas || !gl) return undefined;
+
+    const parallel = gl.getExtension('KHR_parallel_shader_compile');
+    const programs = new Map();
+    const entry = (palette, repel, warp) => {
+      const key = keyOf(palette, repel, warp);
+      let found = programs.get(key);
+      if (!found) {
+        found = { program: start(gl, palette, repel, warp), linked: null, done: false };
+        programs.set(key, found);
+      }
+      return found;
+    };
+    const variant = (palette, repel, warp, wait) => {
+      const found = entry(palette, repel, warp);
+      if (!found.done && found.program) {
+        if (!wait && parallel && !gl.getProgramParameter(found.program, parallel.COMPLETION_STATUS_KHR)) return null;
+        found.linked = finish(gl, found.program);
+        found.done = true;
+      }
+      return found.linked;
+    };
+    const initial = settingsRef.current;
+    if (!variant(initial.palette.length > 0, false, false, true)) {
+      programs.forEach(found => found.program && gl.deleteProgram(found.program));
+      return undefined;
+    }
+
+    const buffer = gl.createBuffer();
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const cache = new Map();
+    const parse = (value, fallback) => {
+      if (!value) return fallback;
+      const key = String(value);
+      if (cache.has(key)) return cache.get(key);
+      let rgb = fallback;
+      if (probe) {
+        probe.clearRect(0, 0, 1, 1);
+        probe.fillStyle = '#000000';
+        probe.fillStyle = key;
+        probe.fillRect(0, 0, 1, 1);
+        const [r, g, b] = probe.getImageData(0, 0, 1, 1).data;
+        rgb = [r / 255, g / 255, b / 255];
+      }
+      cache.set(key, rgb);
+      return rgb;
+    };
+    const colors = new Float32Array(MAX_COLORS * 3);
+
+    const pointer = { x: 0.5, y: 0.5, inside: false };
+    const state = {
+      time: 0,
+      gloss: 0,
+      depth: 0,
+      angle: 0,
+      mx: 0.5,
+      my: 0.5,
+      active: 0,
+      boost: 0,
+      reveal: settingsRef.current.intro && !reduce ? 0 : 1
+    };
+    let raf = 0;
+    let last = 0;
+    let lastDraw = 0;
+    let visible = true;
+
+    const render = () => {
+      const s = settingsRef.current;
+      s.palette.forEach((value, index) => colors.set(parse(value, [1, 1, 1]), index * 3));
+      const mode = s.lightMode ? (s.transparent ? 3 : 2) : s.transparent ? 1 : 0;
+      const background = parse(s.backgroundColor, s.lightMode ? [1, 1, 1] : [0, 0, 0]);
+      const reveal = state.reveal;
+      const palette = s.palette.length > 0;
+      const repel = s.autoCenterRepulsion > 0 || (s.mouseRepulsion && s.repulsionStrength > 0 && state.active > 0);
+      const warp = state.boost > 0;
+      const base = variant(palette, false, false, true);
+      if (!base) return;
+      const program = (repel || warp ? variant(palette, repel, warp, false) : null) ?? base;
+      const u = program.uniforms;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.useProgram(program.program);
+      gl.bindVertexArray(vao);
+      gl.uniform1f(u.uTime, state.time);
+      gl.uniform2f(u.uResolution, canvas.width, canvas.height);
+      gl.uniform2f(u.uFocal, s.focal[0], s.focal[1]);
+      gl.uniform2f(u.uRotation, s.rotation[0], s.rotation[1]);
+      gl.uniform1f(u.uGloss, state.gloss);
+      gl.uniform1f(u.uDepth, state.depth);
+      gl.uniform1f(u.uDensity, s.density);
+      gl.uniform1f(u.uHueShift, s.hueShift);
+      gl.uniform1f(u.uSpeed, s.speed);
+      gl.uniform2f(u.uMouse, state.mx, state.my);
+      const stretch = 1 + state.boost * 5;
+      gl.uniform1f(u.uStarGlow, (0.05 * s.glowIntensity * s.starSize) / Math.pow(stretch, 0.6));
+      gl.uniform1f(u.uFlareGain, s.glowIntensity * s.flareIntensity);
+      gl.uniform1f(u.uSquash, 1 - 1 / (stretch * stretch));
+      gl.uniform1f(u.uSaturation, s.saturation);
+      gl.uniform1f(u.uMouseRepulsion, s.mouseRepulsion ? 1 : 0);
+      gl.uniform1f(u.uTwinkleIntensity, s.twinkleIntensity);
+      gl.uniform1f(u.uRotationAngle, state.angle);
+      gl.uniform1f(u.uRepulsionStrength, s.repulsionStrength);
+      gl.uniform1f(u.uMouseActiveFactor, state.active);
+      gl.uniform1f(u.uAutoCenterRepulsion, s.autoCenterRepulsion);
+      gl.uniform1i(u.uLayers, s.layers);
+      gl.uniform3fv(u.uColors, colors);
+      gl.uniform1i(u.uColorCount, s.palette.length);
+      gl.uniform1f(u.uWarp, state.boost);
+      const fade = Math.min(1, reveal / 0.35);
+      gl.uniform1f(u.uReveal, fade * fade * (3 - 2 * fade));
+      gl.uniform1f(u.uMode, mode);
+      gl.uniform3fv(u.uBackground, background);
+      gl.uniform1f(u.uOpacity, s.opacity);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    };
+
+    const frame = now => {
+      raf = 0;
+      if (!visible || document.hidden) { last = 0; lastDraw = 0; return; }
+      if (lastDraw && now - lastDraw < 1000 / 30) { raf = requestAnimationFrame(frame); return; }
+      lastDraw = now;
+      const s = settingsRef.current;
+      const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
+      last = now;
+      const motion = s.disableAnimation || reduce ? 0 : 1;
+      if (s.intro && !reduce && state.reveal < 1) {
+        state.reveal = Math.min(1, state.reveal + dt / INTRO_SECONDS);
+        state.boost = Math.max(state.boost, Math.pow(1 - state.reveal, 2) * 1.4);
+      } else if (!s.intro || reduce) {
+        state.reveal = 1;
+      }
+      const flight = (s.starSpeed / 10) * (s.reverse ? -1 : 1);
+      state.time += dt * motion;
+      state.gloss += dt * flight * motion;
+      state.depth += dt * flight * s.speed * motion * (1 + state.boost * 14);
+      state.angle += dt * s.rotationSpeed * motion;
+      state.boost *= Math.exp(-dt * 1.3);
+      if (state.boost < 0.001) state.boost = 0;
+
+      const follow = 1 - Math.exp(-dt / 0.325);
+      const engaged = s.mouseInteraction && pointer.inside && !reduce;
+      if (engaged) {
+        state.mx += (pointer.x - state.mx) * follow;
+        state.my += (pointer.y - state.my) * follow;
+      }
+      const target = engaged ? 1 : 0;
+      state.active += (target - state.active) * follow;
+      if (Math.abs(target - state.active) < 0.001) state.active = target;
+
+      render();
+      const busy = motion > 0 || state.boost > 0 || state.active !== target || state.reveal < 1;
+      if (busy) raf = requestAnimationFrame(frame);
+      else last = 0;
+    };
+
+    const wake = () => {
+      if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame);
+    };
+
+    const resize = () => {
+      const s = settingsRef.current;
+      const width = Math.max(1, container.clientWidth);
+      const height = Math.max(1, container.clientHeight);
+      const ratio = Math.min(s.dpr || window.devicePixelRatio || 1, 1, 1600 / width);
+      canvas.width = Math.max(1, Math.round(width * ratio));
+      canvas.height = Math.max(1, Math.round(height * ratio));
+      render();
+      wake();
+    };
+
+    const locate = event => {
+      const rect = container.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      pointer.inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+      pointer.x = x / Math.max(1, rect.width);
+      pointer.y = 1 - y / Math.max(1, rect.height);
+    };
+
+    const onPointerMove = event => {
+      locate(event);
+      wake();
+    };
+
+    const onPointerDown = event => {
+      const s = settingsRef.current;
+      locate(event);
+      if (!pointer.inside || !s.clickWarp || reduce) return;
+      state.boost = Math.min(1.6, state.boost + 1);
+      wake();
+    };
+
+    const onPointerUp = event => {
+      if (event.pointerType !== 'mouse') pointer.inside = false;
+    };
+
+    const onPointerLeave = () => {
+      pointer.inside = false;
+    };
+
+    const onVisibility = () => {
+      last = 0;
+      wake();
+    };
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(container);
+    const intersection = new IntersectionObserver(entries => {
+      visible = entries.some(entry => entry.isIntersecting);
+      if (visible) {
+        last = 0;
+        wake();
+      }
+    });
+    intersection.observe(container);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('pointerup', onPointerUp, { passive: true });
+    window.addEventListener('pointercancel', onPointerUp, { passive: true });
+    document.documentElement.addEventListener('pointerleave', onPointerLeave);
+    document.addEventListener('visibilitychange', onVisibility);
+    resize();
+
+    const repelling = initial.autoCenterRepulsion > 0 || (initial.mouseInteraction && initial.mouseRepulsion);
+    const tinted = initial.palette.length > 0;
+    // Shader variants compile on demand after interaction.
+    
+    
+
+    let lastDpr = settingsRef.current.dpr;
+    wakeRef.current = () => {
+      const s = settingsRef.current;
+      if (s.dpr !== lastDpr) {
+        lastDpr = s.dpr;
+        resize();
+        return;
+      }
+      if (!raf) render();
+      wake();
+    };
+
+    return () => {
+      cancelAnimationFrame(raf);
+      wakeRef.current = null;
+      resizeObserver.disconnect();
+      intersection.disconnect();
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      document.documentElement.removeEventListener('pointerleave', onPointerLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
+      programs.forEach(found => found.program && gl.deleteProgram(found.program));
+      gl.deleteBuffer(buffer);
+      gl.deleteVertexArray(vao);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    };
+  }, []);
+
+  useEffect(() => {
+    wakeRef.current?.();
+  });
+
+  return (
+    <div ref={containerRef} className={`galaxy-container${className ? ` ${className}` : ''}`} style={style} {...rest}>
+      <canvas ref={canvasRef} className="galaxy-canvas" aria-hidden="true" />
+    </div>
+  );
+};
+
+
+
+/* ---------------- Reusable components ---------------- */
+
+function FadeIn({ children, delay = 0, duration = 0.7, x = 0, y = 30, className = "", style = {} }) {
+  return (
+    <motion.div
+      className={className}
+      style={style}
+      initial={{ opacity: 0, x, y }}
+      whileInView={{ opacity: 1, x: 0, y: 0 }}
+      viewport={{ once: true, margin: "50px", amount: 0 }}
+      transition={{ delay, duration, ease: [0.25, 0.1, 0.25, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Magnet({ children, padding = 150, strength = 3, activeTransition = "transform 0.3s ease-out", inactiveTransition = "transform 0.6s ease-in-out" }) {
+  const ref = useRef(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onMove = (e) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const edgeX = r.width / 2 + padding;
+      const edgeY = r.height / 2 + padding;
+      if (Math.abs(dx) < edgeX && Math.abs(dy) < edgeY) {
+        setActive(true);
+        setPos({ x: dx / strength, y: dy / strength });
+      } else {
+        setActive(false);
+        setPos({ x: 0, y: 0 });
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [padding, strength]);
+  return (
+    <div
+      ref={ref}
+      style={{
+        transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+        transition: active ? activeTransition : inactiveTransition,
+        willChange: "transform",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ContactButton({ href = "#contact", label = "Contact Me", onClick }) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className="inline-block rounded-full px-8 py-3 sm:px-10 sm:py-3.5 md:px-12 md:py-4 text-xs sm:text-sm md:text-base font-medium uppercase tracking-widest text-white transition-transform duration-200 hover:scale-105"
+      style={{
+        background: "linear-gradient(123deg, #18011F 7%, #B600A8 37%, #7621B0 72%, #BE4C00 100%)",
+        boxShadow: "0px 4px 4px rgba(181, 1, 167, 0.25), inset 4px 4px 12px rgba(255,255,255,0.12)",
+        outline: "2px solid #fff",
+        outlineOffset: "-3px",
+      }}
+    >
+      {label}
+    </a>
+  );
+}
+
+const StarBorder = (() => {
+
+
+const THEMES = {
+  dark: {
+    surface: '#0c0c0f',
+    text: '#fafafa',
+    track: 'rgba(255, 255, 255, 0.1)',
+    light: '#ffffff'
+  },
+  light: {
+    surface: '#ffffff',
+    text: '#18181b',
+    track: 'rgba(24, 24, 27, 0.12)',
+    light: '#18181b'
+  }
+};
+
+const HOVERS = ['lap', 'brighten', 'reveal', 'none'];
+const BLEED = 48;
+const LAP = 0.9;
+const TAU = Math.PI * 2;
+const WHITE = [255, 255, 255];
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const wrap = (value, total) => ((value % total) + total) % total;
+const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - (2 - 2 * t) ** 3 / 2);
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const rgba = (rgb, alpha) =>
+  `rgba(${Math.round(rgb[0])}, ${Math.round(rgb[1])}, ${Math.round(rgb[2])}, ${clamp(alpha, 0, 1).toFixed(3)})`;
+
+let colorContext = null;
+
+const toRgb = color => {
+  colorContext = colorContext ?? document.createElement('canvas').getContext('2d');
+  if (!colorContext) return WHITE;
+  colorContext.fillStyle = '#000000';
+  colorContext.fillStyle = color;
+  const value = String(colorContext.fillStyle);
+  if (value.startsWith('#')) {
+    const hex = parseInt(value.slice(1, 7), 16);
+    return [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+  }
+  const parts = value.match(/[\d.]+/g)?.map(Number) ?? WHITE;
+  return [parts[0], parts[1], parts[2]];
+};
+
+const outline = (width, height, radius) => {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  const arc = (Math.PI * r) / 2;
+  const across = Math.max(0, width - 2 * r);
+  const down = Math.max(0, height - 2 * r);
+  const segments = [
+    { length: across, x: r, y: 0, dx: 1, dy: 0, angle: null },
+    { length: arc, x: width - r, y: r, dx: 0, dy: 0, angle: -Math.PI / 2 },
+    { length: down, x: width, y: r, dx: 0, dy: 1, angle: null },
+    { length: arc, x: width - r, y: height - r, dx: 0, dy: 0, angle: 0 },
+    { length: across, x: width - r, y: height, dx: -1, dy: 0, angle: null },
+    { length: arc, x: r, y: height - r, dx: 0, dy: 0, angle: Math.PI / 2 },
+    { length: down, x: 0, y: height - r, dx: 0, dy: -1, angle: null },
+    { length: arc, x: r, y: r, dx: 0, dy: 0, angle: Math.PI }
+  ];
+  return {
+    r,
+    segments,
+    total: Math.max(
+      1,
+      segments.reduce((sum, segment) => sum + segment.length, 0)
+    )
+  };
+};
+
+const pointAt = (shape, distance, point) => {
+  let s = wrap(distance, shape.total);
+  for (const segment of shape.segments) {
+    if (segment.length > 0 && s <= segment.length) {
+      if (segment.angle === null) {
+        point.x = segment.x + segment.dx * s;
+        point.y = segment.y + segment.dy * s;
+        point.nx = segment.dy;
+        point.ny = -segment.dx;
+      } else {
+        const angle = segment.angle + s / shape.r;
+        point.nx = Math.cos(angle);
+        point.ny = Math.sin(angle);
+        point.x = segment.x + point.nx * shape.r;
+        point.y = segment.y + point.ny * shape.r;
+      }
+      return point;
+    }
+    s -= segment.length;
+  }
+  return point;
+};
+
+const project = (shape, px, py) => {
+  let best = Infinity;
+  let found = 0;
+  let offset = 0;
+  shape.segments.forEach(segment => {
+    if (segment.length > 0) {
+      let s = 0;
+      let x = 0;
+      let y = 0;
+      if (segment.angle === null) {
+        s = clamp((px - segment.x) * segment.dx + (py - segment.y) * segment.dy, 0, segment.length);
+        x = segment.x + segment.dx * s;
+        y = segment.y + segment.dy * s;
+      } else {
+        let angle = wrap(Math.atan2(py - segment.y, px - segment.x) - segment.angle, TAU);
+        if (angle > Math.PI / 2) angle = angle > Math.PI * 1.25 ? 0 : Math.PI / 2;
+        s = angle * shape.r;
+        x = segment.x + Math.cos(segment.angle + angle) * shape.r;
+        y = segment.y + Math.sin(segment.angle + angle) * shape.r;
+      }
+      const distance = (px - x) ** 2 + (py - y) ** 2;
+      if (distance < best) {
+        best = distance;
+        found = offset + s;
+      }
+    }
+    offset += segment.length;
+  });
+  return found;
+};
+
+const StarBorder = ({
+  as: Component = 'button',
+  children,
+  className = '',
+  style,
+  color,
+  trailColor,
+  duration = 4,
+  thickness = 1,
+  radius = 12,
+  trailLength = 0.3,
+  stars = 1,
+  glow = 0.6,
+  sparkle = false,
+  direction = 'clockwise',
+  hover = 'lap',
+  clickPulse = true,
+  theme = 'dark',
+  backgroundColor,
+  textColor,
+  borderColor,
+  ...rest
+}) => {
+  const rootRef = useRef(null);
+  const canvasRef = useRef(null);
+  const wakeRef = useRef(null);
+  const palette = THEMES[theme] ?? THEMES.dark;
+  const light = color ?? palette.light;
+  const settings = {
+    light: theme === 'light',
+    color: light,
+    trailColor: trailColor ?? light,
+    duration: Math.max(0.3, duration),
+    thickness: Math.max(0.5, thickness),
+    radius: Math.max(0, radius),
+    trailLength: clamp(trailLength, 0, 1),
+    stars: clamp(Math.round(stars), 1, 6),
+    glow: clamp(glow, 0, 1),
+    sparkle,
+    direction: direction === 'counterclockwise' ? -1 : 1,
+    hover: HOVERS.includes(hover) ? hover : 'lap',
+    clickPulse
+  };
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
+  useEffect(() => {
+    const root = rootRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!root || !canvas || !ctx) return undefined;
+
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const point = { x: 0, y: 0, nx: 0, ny: -1 };
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      phase: 0,
+      velocity: 0,
+      motion: 0,
+      lap: -1,
+      time: 0,
+      reveal: 0,
+      boost: 0,
+      flash: 0,
+      emit: 0,
+      hovered: false,
+      focused: false,
+      pointerX: 0,
+      pointerY: 0,
+      visible: true
+    };
+    const pulses = [];
+    const dust = [];
+    const colors = { key: '', head: WHITE, tail: WHITE };
+    let raf = 0;
+    let last = performance.now();
+    let lastDraw = 0;
+    let alive = true;
+
+    let resizePending = false;
+    const applyMeasure = () => {
+      state.width = root.offsetWidth;
+      state.height = root.offsetHeight;
+      state.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      canvas.width = Math.max(1, Math.round((state.width + BLEED * 2) * state.dpr));
+      canvas.height = Math.max(1, Math.round((state.height + BLEED * 2) * state.dpr));
+    };
+
+    const measure = () => {
+      resizePending = true;
+      wake();
+    };
+
+    const local = event => {
+      const rect = root.getBoundingClientRect();
+      const scaleX = rect.width ? state.width / rect.width : 1;
+      const scaleY = rect.height ? state.height / rect.height : 1;
+      return [(event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY];
+    };
+
+    const shapeFor = s =>
+      outline(
+        Math.max(1, state.width - s.thickness),
+        Math.max(1, state.height - s.thickness),
+        s.radius - s.thickness / 2
+      );
+
+    const stroke = (x1, y1, x2, y2, width, style) => {
+      ctx.lineWidth = width;
+      ctx.strokeStyle = style;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    };
+
+    const drawTrail = (s, shape, head, length, sign, intensity, tip = true) => {
+      if (length < 0.5 || intensity <= 0) return;
+      const steps = clamp(Math.ceil(length / 2), 2, 90);
+      pointAt(shape, head, point);
+      let px = point.x;
+      let py = point.y;
+      for (let i = 1; i <= steps; i++) {
+        pointAt(shape, head - sign * length * (i / steps), point);
+        const u = 1 - (i - 0.5) / steps;
+        const fade = u * u * intensity;
+        let tone = mix(colors.tail, colors.head, u);
+        if (!s.light) tone = mix(tone, WHITE, u ** 6 * 0.65);
+        ctx.lineCap = tip && i === 1 ? 'round' : 'butt';
+        stroke(px, py, point.x, point.y, 2 + 6 * s.glow, rgba(tone, fade * (s.light ? 0.1 : 0.2) * s.glow));
+        stroke(px, py, point.x, point.y, s.thickness, rgba(tone, fade));
+        px = point.x;
+        py = point.y;
+      }
+    };
+
+    const drawHead = (s, x, y, intensity, twinkle) => {
+      if (intensity <= 0) return;
+      const tone = colors.head;
+      const reach = (12 + 40 * s.glow) * (s.light ? 0.6 : 1);
+      const bloom = ctx.createRadialGradient(x, y, 0, x, y, reach);
+      const strength = (s.light ? 0.08 : 0.4) * s.glow * intensity;
+      bloom.addColorStop(0, rgba(tone, strength));
+      bloom.addColorStop(0.2, rgba(tone, strength * 0.4));
+      bloom.addColorStop(0.5, rgba(tone, strength * 0.1));
+      bloom.addColorStop(1, rgba(tone, 0));
+      ctx.fillStyle = bloom;
+      ctx.fillRect(x - reach, y - reach, reach * 2, reach * 2);
+      if (!s.sparkle) return;
+
+      const size = (1 + s.thickness * 0.6) * (s.light ? 0.85 : 1);
+      const core = ctx.createRadialGradient(x, y, 0, x, y, size * 2.2);
+      core.addColorStop(0, rgba(s.light ? tone : WHITE, intensity));
+      core.addColorStop(s.light ? 0.3 : 0.4, rgba(s.light ? tone : mix(tone, WHITE, 0.5), intensity * 0.9));
+      core.addColorStop(s.light ? 0.55 : 1, rgba(tone, s.light ? intensity * 0.12 : 0));
+      core.addColorStop(1, rgba(tone, 0));
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 2.2, 0, TAU);
+      ctx.fill();
+
+      const spike = (3 + 4 * s.glow + s.thickness * 1.5) * twinkle;
+      const center = s.light ? tone : WHITE;
+      const horizontal = ctx.createLinearGradient(x - spike, y, x + spike, y);
+      horizontal.addColorStop(0, rgba(tone, 0));
+      horizontal.addColorStop(0.5, rgba(center, intensity * 0.95));
+      horizontal.addColorStop(1, rgba(tone, 0));
+      stroke(x - spike, y, x + spike, y, s.light ? 0.75 : 1, horizontal);
+      const vertical = ctx.createLinearGradient(x, y - spike, x, y + spike);
+      vertical.addColorStop(0, rgba(tone, 0));
+      vertical.addColorStop(0.5, rgba(center, intensity * 0.95));
+      vertical.addColorStop(1, rgba(tone, 0));
+      stroke(x, y - spike, x, y + spike, s.light ? 0.75 : 1, vertical);
+    };
+
+    const spawnDust = (x, y, nx, ny, speed) => {
+      if (dust.length > 48) return;
+      const push = 3 + Math.random() * 10;
+      const drift = (Math.random() - 0.5) * 8;
+      dust.push({
+        x: x + nx * (Math.random() * 3 - 1),
+        y: y + ny * (Math.random() * 3 - 1),
+        vx: nx * push - ny * drift - speed * -ny * 0.04,
+        vy: ny * push + nx * drift - speed * nx * 0.04,
+        age: 0,
+        life: 0.35 + Math.random() * 0.5,
+        size: 0.45 + Math.random() * 0.7,
+        seed: Math.random() * TAU
+      });
+    };
+
+    const draw = (base, shape) => {
+      const s = state.boost > 0.001 ? { ...base, glow: Math.min(1.5, base.glow + 0.4 * state.boost) } : base;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (state.width < 2 || state.height < 2) return;
+      const offset = (BLEED + s.thickness / 2) * state.dpr;
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, offset, offset);
+      ctx.globalCompositeOperation = s.light ? 'source-over' : 'lighter';
+      ctx.lineCap = 'butt';
+
+      const total = shape.total;
+      const spacing = total / s.stars;
+      const speed = Math.abs(state.motion);
+      const sign = state.motion >= 0 ? 1 : -1;
+      const span = s.trailLength * s.duration;
+      const length = Math.min(speed * span, spacing * 0.92, total * 0.6);
+      const intensity = state.reveal * (1 + 0.4 * state.boost + 0.6 * state.flash);
+
+      const ring = state.flash * (s.light ? 0.18 : 0.32) + state.boost * state.reveal * (s.light ? 0.07 : 0.12);
+      if (ring > 0.005) {
+        ctx.lineWidth = s.thickness + 2 * s.glow;
+        ctx.strokeStyle = rgba(colors.head, ring);
+        ctx.beginPath();
+        ctx.roundRect(
+          0,
+          0,
+          Math.max(1, state.width - s.thickness),
+          Math.max(1, state.height - s.thickness),
+          Math.max(0, shape.r)
+        );
+        ctx.stroke();
+      }
+
+      const still = clamp(1 - speed / Math.max(1, (total / s.duration) * 0.6), 0, 1) * Math.min(1, intensity);
+      const rest = (10 + 14 * s.glow + s.thickness * 2) * still;
+      for (let i = 0; i < s.stars; i++) {
+        const head = state.phase + i * spacing;
+        drawTrail(s, shape, head, length, sign, Math.min(1, intensity));
+        if (still > 0.01) {
+          drawTrail(s, shape, head, rest, 1, still, false);
+          drawTrail(s, shape, head, rest, -1, still, false);
+        }
+      }
+
+      pulses.forEach(pulse => {
+        const progress = pulse.age / 0.65;
+        const fade = (1 - progress) ** 2;
+        const travel = (total / 2) * (1 - (1 - Math.min(1, pulse.age / 0.5)) ** 2);
+        const tail = Math.min(travel, total * 0.16);
+        [1, -1].forEach(way => {
+          const front = pulse.origin + way * travel;
+          drawTrail(s, shape, front, tail, way, fade);
+          pointAt(shape, front, point);
+          drawHead(s, point.x, point.y, fade * 0.8, 0.8);
+        });
+      });
+
+      for (let i = 0; i < s.stars; i++) {
+        pointAt(shape, state.phase + i * spacing, point);
+        const twinkle = 0.82 + 0.18 * Math.sin(state.time * 6.1 + i * 2.3) * Math.sin(state.time * 2.7 + i);
+        drawHead(s, point.x, point.y, Math.min(1.3, intensity), twinkle);
+      }
+
+      dust.forEach(mote => {
+        const left = 1 - mote.age / mote.life;
+        const shimmer = 0.45 + 0.55 * Math.sin(state.time * 20 + mote.seed);
+        const alpha = left * shimmer * state.reveal * (s.light ? 0.35 : 0.9);
+        if (alpha <= 0.01) return;
+        ctx.fillStyle = rgba(s.light ? colors.head : mix(colors.tail, WHITE, 0.6), alpha);
+        ctx.beginPath();
+        ctx.arc(mote.x, mote.y, mote.size * (0.6 + 0.4 * left), 0, TAU);
+        ctx.fill();
+      });
+    };
+
+    const frame = now => {
+      raf = 0;
+      if (resizePending) {
+        resizePending = false;
+        applyMeasure();
+      }
+      if (!alive) return;
+      const s = settingsRef.current;
+      const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+      last = now;
+      state.time += dt;
+
+      const key = `${s.color}|${s.trailColor}`;
+      if (key !== colors.key) {
+        colors.key = key;
+        colors.head = toRgb(s.color);
+        colors.tail = toRgb(s.trailColor);
+      }
+
+      const shape = shapeFor(s);
+      const total = shape.total;
+      const spacing = total / s.stars;
+      const engaged = state.hovered || state.focused;
+      const cruise = reduce ? 0 : (s.direction * total) / s.duration;
+
+      const revealTarget = s.hover === 'reveal' && !engaged ? 0 : 1;
+      state.reveal += (revealTarget - state.reveal) * (1 - Math.exp(-dt / (revealTarget > state.reveal ? 0.16 : 0.45)));
+      const boostTarget = s.hover === 'brighten' && engaged ? 1 : 0;
+      state.boost += (boostTarget - state.boost) * (1 - Math.exp(-dt / (boostTarget > state.boost ? 0.18 : 0.5)));
+      state.flash *= Math.exp(-dt / 0.22);
+
+      state.velocity += (cruise - state.velocity) * (1 - Math.exp(-dt / 0.45));
+      let extra = 0;
+      if (state.lap >= 0) {
+        const before = ease(Math.min(1, state.lap / LAP));
+        state.lap += dt;
+        extra = (ease(Math.min(1, state.lap / LAP)) - before) * total * s.direction;
+        if (state.lap >= LAP) state.lap = -1;
+      }
+      state.motion = state.velocity + extra / dt;
+      state.phase = wrap(state.phase + state.velocity * dt + extra, total);
+
+      const pace = Math.abs(state.motion) / Math.max(1, Math.abs(total / s.duration));
+      if (s.sparkle && !reduce && state.reveal > 0.05) {
+        state.emit += dt * (2 + 6 * Math.min(2, pace)) * s.stars;
+        while (state.emit > 1) {
+          state.emit -= 1;
+          pointAt(shape, state.phase + Math.floor(Math.random() * s.stars) * spacing, point);
+          spawnDust(point.x, point.y, point.nx, point.ny, state.motion);
+        }
+      }
+      for (let i = dust.length - 1; i >= 0; i--) {
+        const mote = dust[i];
+        mote.age += dt;
+        mote.x += mote.vx * dt;
+        mote.y += mote.vy * dt;
+        mote.vx *= Math.exp(-dt * 2.2);
+        mote.vy *= Math.exp(-dt * 2.2);
+        if (mote.age >= mote.life) dust.splice(i, 1);
+      }
+      for (let i = pulses.length - 1; i >= 0; i--) {
+        pulses[i].age += dt;
+        if (pulses[i].age >= 0.65) pulses.splice(i, 1);
+      }
+
+      draw(s, shape);
+
+      const settling =
+        Math.abs(revealTarget - state.reveal) > 0.002 ||
+        Math.abs(boostTarget - state.boost) > 0.002 ||
+        state.flash > 0.01 ||
+        pulses.length > 0 ||
+        dust.length > 0;
+      const moving = Math.abs(state.motion) > 0.05 || cruise !== 0 || state.lap >= 0;
+      const showing = state.reveal > 0.002 || revealTarget > 0;
+      if (state.visible && (settling || (moving && showing) || state.hovered)) raf = requestAnimationFrame(frame);
+    };
+
+    const wake = () => {
+      if (raf || !alive || !state.visible) return;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    wakeRef.current = wake;
+
+    const onEnter = event => {
+      const s = settingsRef.current;
+      [state.pointerX, state.pointerY] = local(event);
+      state.hovered = true;
+      if (s.hover === 'reveal' && state.reveal < 0.15) {
+        state.phase = project(shapeFor(s), state.pointerX - s.thickness / 2, state.pointerY - s.thickness / 2);
+        state.velocity = 0;
+      }
+      if (s.hover === 'lap' && state.lap < 0 && !reduce) state.lap = 0;
+      wake();
+    };
+    const onLeave = () => {
+      state.hovered = false;
+      wake();
+    };
+    const pulse = origin => {
+      if (!settingsRef.current.clickPulse) return;
+      pulses.push({ origin, age: 0 });
+      if (pulses.length > 4) pulses.shift();
+      state.flash = 1;
+      wake();
+    };
+    const onDown = event => {
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
+      const s = settingsRef.current;
+      const [x, y] = local(event);
+      pulse(project(shapeFor(s), x - s.thickness / 2, y - s.thickness / 2));
+    };
+    const onClick = event => {
+      if (event.detail === 0) pulse(state.phase);
+    };
+    const onFocus = () => {
+      state.focused = root.matches(':focus-visible');
+      if (state.focused && settingsRef.current.hover === 'lap' && state.lap < 0 && !reduce) state.lap = 0;
+      wake();
+    };
+    const onBlur = () => {
+      state.focused = false;
+      wake();
+    };
+
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(root);
+    const visibility = new IntersectionObserver(entries => {
+      state.visible = entries.some(entry => entry.isIntersecting);
+      if (state.visible) wake();
+    });
+    visibility.observe(root);
+    root.addEventListener('pointerenter', onEnter);
+    root.addEventListener('pointerleave', onLeave);
+    root.addEventListener('pointerdown', onDown);
+    root.addEventListener('click', onClick);
+    root.addEventListener('focus', onFocus);
+    root.addEventListener('blur', onBlur);
+    measure();
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      alive = false;
+      wakeRef.current = null;
+      cancelAnimationFrame(raf);
+      resizeObserver.disconnect();
+      visibility.disconnect();
+      root.removeEventListener('pointerenter', onEnter);
+      root.removeEventListener('pointerleave', onLeave);
+      root.removeEventListener('pointerdown', onDown);
+      root.removeEventListener('click', onClick);
+      root.removeEventListener('focus', onFocus);
+      root.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  useEffect(() => {
+    wakeRef.current?.();
+  });
+
+  return (
+    <Component
+      ref={rootRef}
+      className={`star-border${className ? ` ${className}` : ''}`}
+      style={{
+        '--star-border-radius': `${settings.radius}px`,
+        '--star-border-thickness': `${settings.thickness}px`,
+        '--star-border-surface': backgroundColor ?? palette.surface,
+        '--star-border-text': textColor ?? palette.text,
+        '--star-border-track': borderColor ?? palette.track,
+        ...style
+      }}
+      {...(Component === 'button' && rest.type === undefined ? { type: 'button' } : null)}
+      {...rest}
+    >
+      <canvas ref={canvasRef} className="star-border__light" aria-hidden="true" />
+      {children}
+    </Component>
+  );
+};
+
+return StarBorder;
+
+
+
+})();
+
+function LiveProjectButton({ label = "Live Project", href }) {
+  return (
+    <StarBorder as={href ? "a" : "button"} href={href} target={href ? "_blank" : undefined} rel={href ? "noopener noreferrer" : undefined}
+      className="live-project-star" radius={999} color="#D7E2EA" trailColor="#B78CFF" duration={5} thickness={1.5} glow={0.6} hover="lap" clickPulse backgroundColor="#0C0C0C" textColor="#D7E2EA" borderColor="rgba(215,226,234,0.35)">
+      {label}
+    </StarBorder>
+  );
+}
+
+function AnimatedChar({ char, index, total, progress }) {
+  const start = index / total;
+  const end = start + 1 / total;
+  const opacity = useTransform(progress, [start, end], [0.2, 1]);
+  return (
+    <span style={{ position: "relative", display: "inline-block" }}>
+      <span style={{ opacity: 0, whiteSpace: "pre" }}>{char}</span>
+      <motion.span style={{ opacity, position: "absolute", left: 0, top: 0, whiteSpace: "pre" }}>
+        {char}
+      </motion.span>
+    </span>
+  );
+}
+
+function AnimatedText({ text, className = "", style = {} }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.8", "end 0.2"] });
+  const chars = text.split("");
+  return (
+    <p ref={ref} className={className} style={style}>
+      {chars.map((c, i) => (
+        <AnimatedChar key={i} char={c} index={i} total={chars.length} progress={scrollYProgress} />
+      ))}
+    </p>
+  );
+}
+
+function SectionShell({ children, className = "", style = {}, id }) {
+  return (
+    <section id={id} className={"w-full " + (id === "strengths" ? "galaxy-host " : "") + className} style={style}>
+      {id === "strengths" && <div className="galaxy-layer"><Galaxy density={1} glowIntensity={0.3} flareIntensity={1} starSpeed={0.5} layers={3} dpr={1} intro={false} mouseRepulsion clickWarp /></div>}
+      <div className="galaxy-content mx-auto max-w-[1700px] px-6 md:px-10 lg:px-16">{children}</div>
+    </section>
+  );
+}
+
+/* ---------------- Hero Section ---------------- */
+
+function HeroSection() {
+  return (
+    <section id="home" className="galaxy-host relative flex h-screen flex-col" style={{ overflowX: "clip" }}>
+      <div className="galaxy-layer"><Galaxy density={1} glowIntensity={0.3} flareIntensity={1} starSpeed={0.5} layers={3} dpr={1} intro={false} mouseRepulsion clickWarp /></div>
+      {/* Navbar */}
+      <FadeIn delay={0} y={-20}>
+        <nav className="mx-auto flex w-full max-w-[1700px] items-center justify-between px-6 pt-6 md:px-10 md:pt-8">
+          {[
+            ["About", "#about"],
+            ["Experience", "#experience"],
+            ["Strengths", "#strengths"],
+            ["Projects", "#projects"],
+            ["Contact", "#contact"],
+          ].map(([t, href]) => (
+            <a
+              key={t}
+              href={href}
+              className="text-sm font-medium uppercase tracking-wider text-[#D7E2EA] transition-opacity duration-200 hover:opacity-70 md:text-lg lg:text-[1.4rem]"
+            >
+              {t}
+            </a>
+          ))}
+        </nav>
+      </FadeIn>
+
+      {/* Hero heading */}
+      <div className="overflow-hidden">
+        <FadeIn delay={0.15} y={40}>
+          <h1
+            className="hero-heading mt-6 w-full whitespace-nowrap text-center font-black uppercase tracking-tight leading-none sm:mt-4 md:-mt-2 text-[11vw]"
+          >
+            Hi, i&apos;m tianyi
+          </h1>
+        </FadeIn>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 top-[24%] bottom-[15%] z-10 flex items-center justify-center" style={{mixBlendMode:"screen"}}>
+        <video src="./1113.mp4" autoPlay muted playsInline preload="auto" onEnded={e=>e.currentTarget.pause()} style={{width:"100%",height:"100%",objectFit:"contain"}} aria-label="Tianyi introduction" />
+      </div>
+      {/* Bottom bar */}
+      <div className="mt-auto flex items-end justify-between pb-7 sm:pb-8 md:pb-10 mx-auto w-full max-w-[1700px] px-6 md:px-10">
+        <FadeIn delay={0.35} y={20}>
+          <p
+            className="max-w-[220px] font-light uppercase tracking-wide leading-snug text-[#D7E2EA] md:max-w-[300px]"
+            style={{ fontSize: "clamp(0.75rem, 1.2vw, 1.4rem)" }}
+          >
+            a ui/ux designer driven by crafting striking and unforgettable projects
+          </p>
+        </FadeIn>
+        <FadeIn delay={0.5} y={20}>
+          <ContactButton />
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- About Section ---------------- */
+
+const CORNER_IMAGES = [
+  {
+    src: "https://shrug-person-78902957.figma.site/_components/v2/ebb2b8f25d8e24d5f0a5ca8af4c950de81aa2fd7/moon_icon.11395d36.png",
+    cls: "w-[150px] xl:w-[210px] top-[4%] left-[1%] xl:left-[4%]",
+    delay: 0.1, x: -80,
+  },
+  {
+    src: "https://shrug-person-78902957.figma.site/_components/v2/ebb2b8f25d8e24d5f0a5ca8af4c950de81aa2fd7/p59_1.4659672e.png",
+    cls: "w-[120px] xl:w-[180px] bottom-[8%] left-[3%] xl:left-[10%]",
+    delay: 0.25, x: -80,
+  },
+  {
+    src: "https://shrug-person-78902957.figma.site/_components/v2/ebb2b8f25d8e24d5f0a5ca8af4c950de81aa2fd7/lego_icon-1.703bb594.png",
+    cls: "w-[150px] xl:w-[210px] top-[4%] right-[1%] xl:right-[4%]",
+    delay: 0.15, x: 80,
+  },
+  {
+    src: "https://shrug-person-78902957.figma.site/_components/v2/ebb2b8f25d8e24d5f0a5ca8af4c950de81aa2fd7/Group_134-1.2e04f3ce.png",
+    cls: "w-[160px] xl:w-[220px] bottom-[8%] right-[3%] xl:right-[10%]",
+    delay: 0.3, x: 80,
+  },
+];
+
+function AboutSection() {
+  return (
+    <section id="about" className="relative flex min-h-screen items-center justify-center px-5 py-20 sm:px-8 md:px-10" style={{ overflowX: "clip" }}>
+      {CORNER_IMAGES.map((img, i) => (
+        <FadeIn key={i} delay={img.delay} x={img.x} y={0} duration={0.9} className={"pointer-events-none absolute z-0 " + img.cls}>
+          <img
+            src={img.src}
+            alt=""
+            className="w-full opacity-80"
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
+        </FadeIn>
+      ))}
+      <div className="relative z-10 mx-auto flex max-w-[1700px] flex-col items-center">
+        <FadeIn delay={0} y={40}>
+          <h2 className="hero-heading text-center font-black uppercase tracking-tight leading-none" style={{ fontSize: "clamp(3rem, 12vw, 160px)" }}>
+            About me
+          </h2>
+        </FadeIn>
+        <div className="mt-10 flex flex-col items-center gap-16 sm:mt-14 sm:gap-20 md:gap-24">
+          <AnimatedText
+            text={"从产品设计到交互体验，我始终相信好的设计源于对人的理解。目前就读于香港大学 Innovative Design and Technology 硕士项目，本科毕业于南京师范大学产品设计专业。我专注于 UI/UX 设计、品牌视觉与 AIGC 赋能设计，期待与致力于脱颖而出的团队一起，创造令人难忘的数字体验！"}
+            className="text-center font-medium leading-relaxed text-[#D7E2EA] max-w-[640px]"
+            style={{ fontSize: "clamp(1rem, 2vw, 1.35rem)" }}
+          />
+          <ContactButton />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Experience Section ---------------- */
+
+const EXPERIENCE = [
+  {
+    period: "2026.09 — 2027.11",
+    org: "香港大学（硕士）",
+    role: "Innovative Design and Technology",
+    bullets: ["创新与研发算法、计算机辅助产品开发、无人机路径规划与控制", "米兰国际设计大赛铜奖、艺彩杯江苏省设计大赛金奖/银奖、全国大赛三等奖"],
+  },
+  {
+    period: "2022.09 — 2026.06",
+    org: "南京师范大学（本科）",
+    role: "产品设计",
+    bullets: ["产品设计 A/B、图形创意、几何构成、塑造与空间"],
+  },
+  {
+    period: "2026.09 — 至今",
+    org: "AI-Guided Limited",
+    role: "智能穿戴 UI/UX 设计实习生",
+    bullets: [
+      "为面向 AI 无障碍语音导航产品 GUI/Voice 双模色盘设计，适配两类核心用户，输出用户旅程图，沉淀 30+ 可复用组件，统一产品设计语言",
+      "使用 Figma 完成多端语言 B 端数据仪表盘高保真交互原型，搭建遵循 WCAG2.1 的无障碍组件库",
+    ],
+  },
+  {
+    period: "2026.03 — 2026.07",
+    org: "新东方教育",
+    role: "视觉设计实习生",
+    bullets: [
+      "主导 K12 教研部门线上全渠道视觉体系，基于 AIGC 工作流（Stable Diffusion）出图，生成多风格角色形象并应用于活动海报、H5、叠叠宝等物料，视觉资产复用率提升 25%",
+      "深度参与南京新东方六套公众号推文编排与视觉策划，统筹每月图文内容排版设计，浏览量环比增长 20%",
+    ],
+  },
+  {
+    period: "2024.06 — 2024.09",
+    org: "江苏省科技馆",
+    role: "产品设计实习生",
+    bullets: [
+      "主导科技馆核心 IP 形象从 0 到 1 全链路设计，基于品牌定位与用户画像完成机器人角色设计、视觉风格探索及成本迭代",
+      "推动门店转化率同步提升 40%，获游客满意度调研中“文创设计”维度评分 4.8/5.0",
+    ],
+  },
+];
+
+function ExperienceSection() {
+  return (
+    <section
+      id="experience"
+      className="w-full rounded-t-[40px] sm:rounded-t-[50px] md:rounded-t-[60px] px-5 py-20 sm:px-8 sm:py-24 md:px-10 md:py-32"
+      style={{ background: "#FFFFFF" }}
+    >
+      <div className="mx-auto max-w-[1700px]">
+        <FadeIn delay={0} y={40}>
+          <h2 className="mb-16 text-center font-black uppercase leading-none tracking-tight text-[#0C0C0C] sm:mb-20 md:mb-28" style={{ fontSize: "clamp(3rem, 12vw, 160px)" }}>
+            Experience
+          </h2>
+        </FadeIn>
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-6 flex items-center gap-6">
+            <span className="rounded-full bg-[#0C0C0C] px-5 py-1.5 text-xs font-medium uppercase tracking-widest text-white sm:text-sm">教育经历 + 实习经历</span>
+          </div>
+          {EXPERIENCE.map((e, i) => (
+            <FadeIn key={i} delay={0.1 + i * 0.05} y={30}>
+              <div
+                className="flex flex-col gap-3 py-8 sm:flex-row sm:gap-8 sm:py-10 md:py-12"
+                style={{ borderTop: i === 0 ? "none" : "1px solid rgba(12,12,12,0.15)" }}
+              >
+                <div className="w-full shrink-0 sm:w-52" style={{ color: "#B600A8" }}>
+                  <span className="font-semibold tracking-wide" style={{ fontSize: "clamp(0.9rem, 1.3vw, 1.15rem)" }}>
+                    {e.period}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium uppercase leading-tight text-[#0C0C0C]" style={{ fontSize: "clamp(1.1rem, 2.2vw, 2.1rem)" }}>
+                    {e.org}
+                    <span className="ml-3 align-middle font-light text-[#0C0C0C]/60" style={{ fontSize: "clamp(0.85rem, 1.6vw, 1.25rem)" }}>
+                      {e.role}
+                    </span>
+                  </h3>
+                  <ul className="mt-3 space-y-2">
+                    {e.bullets.map((b, j) => (
+                      <li key={j} className="flex gap-3 font-light leading-relaxed text-[#0C0C0C]" style={{ fontSize: "clamp(0.85rem, 1.6vw, 1.25rem)" }}>
+                        <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-[#B600A8]"></span>
+                        <span style={{ opacity: 0.65 }}>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Strengths Section ---------------- */
+
+const SKILLS = ["Figma", "Photoshop", "After Effects", "Codex", "Midjourney", "ChatGPT", "Rhino", "DaVinci", "Vibe-Coding"];
+
+const STRENGTHS = [
+  {
+    num: "01",
+    name: "产品思维 × 设计审美",
+    desc: "兼具产品思维与设计能力，审美与技术复合基础扎实。能够从用户与业务双重视角定义问题，让设计真正服务于产品目标。",
+  },
+  {
+    num: "02",
+    name: "0→1 全流程落地",
+    desc: "从 0 到 1 产品落地经验丰富，擅长以 AIGC 工作流（Stable Diffusion、Midjourney）赋能设计，高效产出高质量方案。",
+  },
+  {
+    num: "03",
+    name: "国际化协作",
+    desc: "英文可作为工作语言（雅思 7.0 / CET-6），适配粤港澳及国际化团队，具备跨文化沟通与协作经验。",
+  },
+];
+
+function StrengthsSection() {
+  return (
+    <SectionShell id="strengths" className="py-20 sm:py-24 md:py-32">
+      <FadeIn delay={0} y={40}>
+        <h2 className="hero-heading mb-16 text-center font-black uppercase leading-none tracking-tight sm:mb-20 md:mb-28" style={{ fontSize: "clamp(3rem, 12vw, 160px)" }}>
+          Strengths
+        </h2>
+      </FadeIn>
+
+      <FadeIn delay={0.1} y={20}>
+        <div className="mb-16 flex flex-wrap items-center justify-center gap-3 sm:mb-24 md:gap-4">
+          {SKILLS.map((s) => (
+            <span
+              key={s}
+              className="rounded-full border border-[#D7E2EA]/30 px-6 py-2 text-xs font-light uppercase tracking-widest text-[#D7E2EA] transition-colors duration-200 hover:border-[#B600A8] hover:text-white sm:px-8 sm:py-2.5 sm:text-sm"
+            >
+              {s}
+            </span>
+          ))}
+        </div>
+      </FadeIn>
+
+      <div className="mx-auto max-w-5xl">
+        {STRENGTHS.map((s, i) => (
+          <FadeIn key={s.num} delay={0.15 + i * 0.1} y={30}>
+            <div
+              className="flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:gap-10 sm:py-10 md:py-12"
+              style={{ borderTop: i === 0 ? "none" : "1px solid rgba(215,226,234,0.15)" }}
+            >
+              <span
+                className="hero-heading shrink-0 font-black leading-none sm:w-48"
+                style={{ fontSize: "clamp(3rem, 10vw, 140px)" }}
+              >
+                {s.num}
+              </span>
+              <div>
+                <h3 className="font-medium uppercase leading-tight text-[#D7E2EA]" style={{ fontSize: "clamp(1.1rem, 2.2vw, 2.1rem)" }}>
+                  {s.name}
+                </h3>
+                <p className="mt-3 max-w-2xl font-light leading-relaxed text-[#D7E2EA]" style={{ fontSize: "clamp(0.85rem, 1.6vw, 1.25rem)", opacity: 0.6 }}>
+                  {s.desc}
+                </p>
+              </div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+    </SectionShell>
+  );
+}
+
+/* ---------------- Projects Section ---------------- */
+
+const PROJECTS = [
+  {
+    num: "01",
+    category: "AI 产品 · 智能陪伴",
+    name: "LifeOS AI",
+    sub: "AI智能陪伴系统",
+    grad: "linear-gradient(135deg, #16214a 0%, #4b6cb7 100%)",
+    grad2: "linear-gradient(135deg, #1e2f5e 0%, #6a8fd8 100%)",
+
+    image: "./Frame%20102.png",
+    pdf: "./Lifeos.pdf",
+  },
+  {
+    num: "02",
+    category: "教育产品 · 雅思学习",
+    name: "小黄鸭雅思",
+    sub: "你的雅思学习伙伴",
+    grad: "linear-gradient(135deg, #3a1c5c 0%, #9b59b6 100%)",
+    grad2: "linear-gradient(135deg, #4b2570 0%, #b877d9 100%)",
+    image: "./ielts-cover.png",
+    pdf: "./ielts-project.pdf",
+    description: "小黄鸭雅思是一款专为雅思备考者打造的智能学习应用，以趣味化视觉设计与个性化学习体验为核心，整合雅思学习、智能课堂、学习进度追踪与能力评估等功能。通过小黄鸭IP形象与游戏化激励机制，帮助用户建立持续学习的动力，记录每一次进步，让雅思备考更加高效、有趣且有方向。",
+  },
+  {
+    num: "03",
+    category: "教育产品 · 视觉设计与内容策划",
+    name: "新东方实习项目",
+    sub: "k12教育",
+    grad: "linear-gradient(135deg, #4a2c0f 0%, #d98e4a 100%)",
+    grad2: "linear-gradient(135deg, #5c3a15 0%, #e8a86a 100%)",
+    image: "./%E8%B5%84%E6%BA%90%201%E5%B0%81%E9%9D%A2.png",
+    pdf: "./%E6%B5%B7%E6%8A%A5%E6%96%B0%E4%B8%9C%E6%96%B9.pdf",
+    description: "参与新东方K12教育产品视觉设计与新媒体内容建设，基于AIGC工作流辅助生成多风格视觉素材，应用于活动海报、H5及展板设计，提升视觉资产复用效率。同时参与微信公众号选题策划、图文排版与内容编辑，优化信息层级与视觉呈现，推动内容传播效果提升，实现设计与内容运营的协同。",
+  },
+  {
+    num: "04",
+    category: "互动游戏 · 分支叙事",
+    name: "NNU美院模拟器",
+    sub: "重返校园",
+    grad: "linear-gradient(135deg, #123a2e 0%, #3aa17e 100%)",
+    grad2: "linear-gradient(135deg, #17503d 0%, #52c49c 100%)",
+    image: "./Frame%2087.png",
+    url: "https://www.tianyigame.online/",
+    description: "一款以南京师范大学美术学院为背景的文字互动游戏，围绕大学生活、学业发展与毕业选择展开叙事。玩家通过不同情境下的决策推动剧情发展，系统记录关键选择，并触发多元化毕业结局。项目融合分支叙事、游戏化交互与多结局机制，让玩家在沉浸式体验中探索不同的人生路径，感受选择对未来的影响。",
+  },
+];
+
+function PlaceholderTile({ grad, label, className = "", style = {} }) {
+  return (
+    <div
+      className={"flex items-center justify-center rounded-[40px] sm:rounded-[50px] md:rounded-[60px] " + className}
+      style={{ background: grad, ...style }}
+    >
+      <div className="flex flex-col items-center gap-2 px-4 text-center">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        <span className="text-xs font-light uppercase tracking-widest text-white/60 sm:text-sm">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function ProjectCard({ p, index, total, progress }) {
+  const targetScale = 1 - (total - 1 - index) * 0.03;
+  const scale = useTransform(progress, [index / total, 1], [1, targetScale]);
+  return (
+    <div className="sticky top-24 md:top-32">
+      <motion.div
+        style={{
+          scale,
+          transformOrigin: "top center",
+          top: `${index * 28}px`,
+          background: "#0C0C0C",
+        }}
+        className={(p.image ? "lifeos-project-card " : "") + "relative flex h-[80vh] min-h-[560px] flex-col rounded-[40px] border-2 border-[#D7E2EA] p-4 sm:rounded-[50px] sm:p-6 md:rounded-[60px] md:p-8"}
+      >
+        {/* Top row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-5 sm:pb-7 md:pb-9">
+          <div className="flex items-end gap-6 md:gap-10">
+            <span className="hero-heading font-black leading-none" style={{ fontSize: "clamp(3rem, 9vw, 130px)" }}>
+              {p.num}
+            </span>
+            <div className="pb-1 md:pb-3">
+              <span className="block text-xs font-light uppercase tracking-widest text-[#D7E2EA]/50 sm:text-sm">{p.category}</span>
+              <h3 className="font-medium uppercase leading-tight text-[#D7E2EA]" style={{ fontSize: "clamp(1.3rem, 3vw, 3rem)" }}>
+                {p.name} <span className="font-light text-[#D7E2EA]/60" style={{ fontSize: "clamp(0.9rem, 1.6vw, 1.4rem)" }}>{p.sub}</span>
+              </h3>
+            </div>
+          </div>
+          <LiveProjectButton href={p.url || p.pdf} />
+        </div>
+        {p.image ? (
+          <div className="lifeos-project-layout">
+            <div className="lifeos-project-image">
+              <img src={p.image} alt={`${p.name} — ${p.sub}项目封面`} loading="lazy" decoding="async" />
+            </div>
+            <div className="lifeos-project-description">
+              <p>{p.description || "LifeOS AI 是一款探索 AI Agent 时代个人智能生活体验的产品。通过个性化数字记忆与智能体 Lumi，将日程管理、旅行规划、工作安排和消费分析融入日常生活。产品以柔性设计、情感陪伴和隐私可控为核心，让 AI 从被动工具转变为主动、贴心且值得信赖的生活伙伴。"}</p>
+            </div>
+          </div>
+        ) : (
+
+        <div className="flex min-h-0 flex-1 gap-3 sm:gap-4">
+          <div className="flex w-[40%] flex-col gap-3 sm:gap-4">
+            <PlaceholderTile grad={p.grad} label="作品图占位 1" className="w-full" style={{ height: "clamp(130px, 16vw, 230px)" }} />
+            <PlaceholderTile grad={p.grad2} label="作品图占位 2" className="w-full flex-1" style={{ minHeight: "clamp(160px, 22vw, 340px)" }} />
+          </div>
+          <PlaceholderTile grad={p.grad} label="作品图占位 · 主视觉" className="w-[60%]" />
+        </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+function ProjectsSection() {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end end"] });
+  return (
+    <section
+      id="projects"
+      className="relative z-10 -mt-10 rounded-t-[40px] pb-32 sm:-mt-12 sm:rounded-t-[50px] md:-mt-14 md:rounded-t-[60px]"
+      style={{ background: "#0C0C0C" }}
+    >
+      <div className="mx-auto max-w-[1700px] px-6 pt-20 md:px-10 sm:pt-24 md:pt-32">
+        <FadeIn delay={0} y={40}>
+          <h2 className="hero-heading mb-16 text-center font-black uppercase leading-none tracking-tight sm:mb-20 md:mb-28" style={{ fontSize: "clamp(3rem, 12vw, 160px)" }}>
+            Project
+          </h2>
+        </FadeIn>
+      </div>
+      <div ref={containerRef} className="mx-auto max-w-[1700px] px-6 md:px-10">
+        {PROJECTS.map((p, i) => (
+          <ProjectCard key={p.num} p={p} index={i} total={PROJECTS.length} progress={scrollYProgress} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Footer / Contact ---------------- */
+
+function Footer() {
+  return (
+    <footer id="contact" className="relative pt-10" style={{ background: "#0C0C0C" }}>
+      <div className="mx-auto max-w-[1700px] px-6 pb-16 md:px-10">
+        <FadeIn y={40}>
+          <h2 className="hero-heading text-center font-black uppercase leading-none tracking-tight" style={{ fontSize: "clamp(2.5rem, 8vw, 110px)" }}>
+            Let&apos;s work together
+          </h2>
+        </FadeIn>
+        <FadeIn delay={0.15} y={30}>
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-[#D7E2EA]" style={{ fontSize: "clamp(0.9rem, 1.4vw, 1.3rem)" }}>
+            <span className="font-light tracking-wide"><span className="text-[#D7E2EA]/50">邮箱：</span>609181597@qq.com</span>
+            <span className="font-light tracking-wide"><span className="text-[#D7E2EA]/50">电话：</span>18251555900</span>
+            <span className="font-light tracking-wide"><span className="text-[#D7E2EA]/50">常住：</span>香港 / 深圳</span>
+            <span className="font-light tracking-wide"><span className="text-[#D7E2EA]/50">求职意向：</span>UI/UX 设计师</span>
+          </div>
+        </FadeIn>
+        <FadeIn delay={0.3} y={20}>
+          <div className="mt-12 flex justify-center">
+            <ContactButton href="mailto:609181597@qq.com" />
+          </div>
+        </FadeIn>
+        <div className="mt-16 flex items-center justify-between border-t border-[#D7E2EA]/10 pt-6">
+          <span className="text-xs font-light uppercase tracking-widest text-[#D7E2EA]/40 sm:text-sm">© 2026 Zhou Tianyi</span>
+          <span className="text-xs font-light uppercase tracking-widest text-[#D7E2EA]/40 sm:text-sm">Zhou Tianyi — UI/UX Designer</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ---------------- App ---------------- */
+
+function App() {
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#0C0C0C", overflowX: "clip" }}>
+      <HeroSection />
+      <AboutSection />
+      <ExperienceSection />
+      <StrengthsSection />
+      <ProjectsSection />
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
